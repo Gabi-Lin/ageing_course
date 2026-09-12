@@ -127,7 +127,9 @@
     margin-bottom: 18px;
   }
 
-  .teaching-note {
+  .note-title { font-weight: 700; margin-bottom: 5px; }
+
+.teaching-note {
     font-size: 14px;
     line-height: 1.45;
     margin: 0 auto 20px;
@@ -245,7 +247,8 @@
     <div class="big-number" id="summary">A: 25% → 57% over 10 generations</div>
     <div class="description">Simple model: no drift, mutation, or migration.</div>
     <div class="teaching-note" id="teachingNote">
-      <b>Small advantage:</b> allele A has slightly higher reproductive success, so natural selection increases its frequency.
+      <div class="note-title" id="noteTitle">Small advantage</div>
+      <div id="noteText">Allele A has slightly higher reproductive success, so natural selection gradually increases its frequency.</div>
     </div>
 
     <div class="row">
@@ -280,28 +283,30 @@ const pValue = document.getElementById("pValue");
 const summary = document.getElementById("summary");
 const chartTitle = document.getElementById("chartTitle");
 const teachingNote = document.getElementById("teachingNote");
+const noteTitle = document.getElementById("noteTitle");
+const noteText = document.getElementById("noteText");
 let selection = 0.03;
 
 const selectionInfo = {
   "0": {
     title: "No selection",
-    text: "<b>None:</b> A has no fitness advantage or disadvantage, so its frequency remains approximately constant in this simplified model."
+    text: "A has no fitness advantage or disadvantage, so its frequency remains approximately constant in this simplified model."
   },
   "0.03": {
     title: "Small advantage",
-    text: "<b>Small advantage:</b> A has slightly higher reproductive success, so natural selection gradually increases its frequency."
+    text: "Allele A has slightly higher reproductive success, so natural selection gradually increases its frequency."
   },
   "0.1": {
     title: "Strong advantage",
-    text: "<b>Strong advantage:</b> A has substantially higher reproductive success, so its frequency increases more rapidly."
+    text: "Allele A has substantially higher reproductive success. Because the fitness advantage is larger, A increases in frequency much faster across generations."
   },
   "-0.1": {
     title: "Harmful before reproduction",
-    text: "<b>Harmful before reproduction:</b> A strongly reduces reproductive success before reproduction, so natural selection acts strongly against it."
+    text: "Allele A strongly reduces reproductive success before reproduction. Individuals carrying A therefore leave fewer offspring, so natural selection strongly decreases A's frequency."
   },
   "-0.005": {
     title: "Harmful after reproduction",
-    text: "<b>Harmful after reproduction:</b> A has a late-life harmful effect with little effect on reproductive success, so selection against it is weak. This illustrates the logic of Mutation Accumulation."
+    text: "Allele A causes only a small reduction in fitness because its harmful effect occurs after most reproduction. Natural selection therefore acts weakly against A, allowing it to persist."
   }
 };
 
@@ -361,7 +366,12 @@ document.querySelectorAll(".segmented button").forEach(btn=>{
     document.querySelectorAll(".segmented button").forEach(b=>b.classList.remove("active"));
     btn.classList.add("active");
     selection=Number(btn.dataset.s);
-    teachingNote.innerHTML=selectionInfo[btn.dataset.s].text;
+    const infoKey=String(Number(btn.dataset.s));
+    const info=selectionInfo[infoKey];
+    if(info){
+      noteTitle.textContent=info.title;
+      noteText.textContent=info.text;
+    }
     draw();
   });
 });
