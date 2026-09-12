@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Reflection Writing Tracker</title>
+<style>
+:root{
+  --ink:#1b1f24; --mut:#5d6874; --line:#d8dee6; --bg:#f4f6f9; --card:#fff;
+  --acc:#1f5fa9; --acc2:#e8f0fa; --ok:#1c7a4a; --warn:#a3541b; --bad:#b32424;
+  --del:#fde2e2; --ins:#dff3e6;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","PingFang TC","Microsoft JhengHei",Roboto,sans-serif;
+  color:var(--ink); background:var(--bg); font-size:16px; line-height:1.6;
+}
+#app{max-width:900px;margin:0 auto;padding:16px 16px 64px}
+header.top{display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;margin:8px 0 4px}
+header.top h1{font-size:1.25rem;margin:0;flex:1 1 260px;letter-spacing:.2px}
+.sub{color:var(--mut);font-size:.85rem;margin:0 0 14px}
+button{font:inherit;cursor:pointer;border-radius:8px;border:1px solid var(--line);background:#fff;padding:8px 14px;color:var(--ink)}
+button:hover{border-color:#9fb0c4}
+button:disabled{opacity:.45;cursor:not-allowed}
+button.pri{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:600}
+button.pri:hover{background:#17497f}
+button.sm{padding:5px 10px;font-size:.85rem}
+button.danger{color:var(--bad);border-color:#e6bcbc}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px;margin:0 0 16px;box-shadow:0 1px 2px rgba(16,24,40,.04)}
+.card h2{font-size:1.05rem;margin:0 0 4px}
+.card h3{font-size:.95rem;margin:18px 0 6px}
+.hint{color:var(--mut);font-size:.85rem;margin:0 0 12px}
+.stages{display:flex;gap:6px;margin:0 0 18px;flex-wrap:wrap}
+.stages button{flex:1 1 140px;text-align:left;padding:8px 12px;font-size:.85rem;line-height:1.3;background:#fff}
+.stages button .n{display:block;font-size:.7rem;letter-spacing:.08em;color:var(--mut);text-transform:uppercase}
+.stages button[aria-current="true"]{background:var(--acc2);border-color:var(--acc);color:var(--acc);font-weight:600}
+.stages button[aria-current="true"] .n{color:var(--acc)}
+label{display:block;font-size:.85rem;font-weight:600;margin:12px 0 4px}
+input[type=text],textarea,select{width:100%;font:inherit;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:8px;padding:9px 11px}
+textarea{resize:vertical;line-height:1.7}
+textarea#draft{min-height:210px}
+textarea#revised{min-height:210px}
+textarea#finaltext{min-height:210px}
+.row{display:flex;gap:12px;flex-wrap:wrap}
+.row>div{flex:1 1 200px}
+.meter{display:flex;align-items:center;gap:14px;flex-wrap:wrap;font-size:.85rem;color:var(--mut);margin:8px 0 0}
+.meter b{color:var(--ink)}
+.meter .ok{color:var(--ok);font-weight:600}
+.meter .bad{color:var(--bad);font-weight:600}
+.lock{background:#f8fafc;border:1px dashed var(--line);border-radius:8px;padding:12px 14px;white-space:pre-wrap;line-height:1.7}
+.note{border-left:3px solid var(--acc);background:var(--acc2);padding:10px 12px;border-radius:0 8px 8px 0;font-size:.88rem;margin:12px 0}
+.note.warn{border-color:var(--warn);background:#fdf3e7}
+.note.bad{border-color:var(--bad);background:#fdeaea}
+.note.ok{border-color:var(--ok);background:#e9f7ef}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;align-items:center}
+.spacer{flex:1}
+.diff{background:#fff;border:1px solid var(--line);border-radius:8px;padding:12px 14px;line-height:1.9}
+.diff del{background:var(--del);text-decoration:line-through;text-decoration-color:#b32424;padding:1px 2px;border-radius:3px}
+.diff ins{background:var(--ins);text-decoration:underline;padding:1px 2px;border-radius:3px}
+table{width:100%;border-collapse:collapse;font-size:.88rem}
+th,td{border:1px solid var(--line);padding:7px 9px;text-align:left;vertical-align:top}
+th{background:#f3f6fa;font-size:.8rem;letter-spacing:.03em}
+td.old{background:#fff6f6}
+td.new{background:#f4fbf7}
+.chg{border:1px solid var(--line);border-radius:10px;padding:12px;margin:0 0 10px;background:#fcfdff}
+.chg .head{display:flex;gap:10px;align-items:center;font-size:.8rem;color:var(--mut);margin-bottom:8px}
+.chg .head .tag{background:#eef2f7;border-radius:20px;padding:2px 9px}
+.chg .pair{font-size:.9rem;margin-bottom:8px}
+.chg .pair span.a{background:var(--del);text-decoration:line-through;padding:1px 3px;border-radius:3px}
+.chg .pair span.b{background:var(--ins);padding:1px 3px;border-radius:3px}
+.chg .pair .arw{color:var(--mut);padding:0 6px}
+.mini{font-size:.8rem;color:var(--mut)}
+.hidden{display:none!important}
+.badge{display:inline-block;font-size:.72rem;font-weight:700;letter-spacing:.05em;padding:2px 8px;border-radius:20px;background:#eef2f7;color:var(--mut);vertical-align:2px}
+.badge.done{background:#e3f4ea;color:var(--ok)}
+.badge.lockd{background:#fdf3e7;color:var(--warn)}
+fieldset{border:1px solid var(--line);border-radius:8px;padding:8px 12px 14px;margin:12px 0 0}
+legend{font-size:.85rem;font-weight:600;padding:0 6px}
+.radios{display:flex;gap:16px;flex-wrap:wrap;margin-top:6px}
+.radios label{display:flex;align-items:center;gap:6px;font-weight:400;margin:0}
+.radios input{width:auto}
+#print{display:none}
+#jsWarn{margin:0;padding:14px 16px;background:#fdeaea;border-bottom:2px solid #b32424;
+  color:#7a1a1a;font-size:.92rem;line-height:1.55}
+#jsWarn b{display:block;font-size:1rem;margin-bottom:4px}
+#jsWarn .en{color:#8a3a3a;margin-top:6px}
+@media print{#jsWarn{display:none!important}}
+
+/* ---------- phones and small tablets ---------- */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+.card,.ptext,.diff,.lock,.chg{overflow-wrap:break-word}
+button{min-height:44px}
+button.sm{min-height:34px}
+@media (max-width:600px){
+  #app{padding:12px 12px 56px}
+  .card{padding:14px;border-radius:10px}
+  .card h2{font-size:1rem}
+  header.top h1{font-size:1.08rem;flex:1 1 100%}
+  .stages button{flex:1 1 100%}
+  .row>div{flex:1 1 100%}
+  .acts{gap:10px}
+  .acts button.pri{flex:1 1 100%}
+  textarea#draft,textarea#revised,textarea#finaltext{min-height:40vh}
+  .meter{gap:10px;font-size:.8rem}
+  label{margin:14px 0 4px}
+}
+@media print{
+  body{background:#fff;font-size:11.5pt}
+  #app{display:none!important}
+  #print{display:block!important;max-width:none;margin:0;padding:0}
+  .pg{page-break-after:always}
+  .pg:last-child{page-break-after:auto}
+  h1.doc{font-size:16pt;margin:0 0 2mm}
+  .psec{page-break-inside:avoid;margin:0 0 6mm}
+  .psec h2{font-size:12pt;border-bottom:1.2pt solid #000;padding-bottom:1mm;margin:0 0 3mm}
+  .ptext{white-space:pre-wrap;line-height:1.7;border:.5pt solid #999;padding:3mm;background:#fff}
+  table{font-size:9.5pt}
+  th,td{border:.5pt solid #666}
+  .diff del{background:transparent;text-decoration:line-through}
+  .diff ins{background:transparent;text-decoration:underline}
+  @page{margin:16mm 15mm}
+}
+</style>
+</head>
+<body>
+<div id="jsWarn">
+  <b>&#9888; 此檔案需要 JavaScript 才能運作 / This file needs JavaScript</b>
+  若字數沒有計算、按鈕沒有反應，表示這個檔案是用「檔案預覽」開啟的（iPhone 的「檔案」App、
+  Android 的檔案管理員），預覽不會執行程式。請改用瀏覽器開啟：把檔案放到課程網站或 LMS 上，
+  再用網址在 Safari／Chrome 開啟。
+  <div class="en">If the word count never changes and the buttons do nothing, this file was opened
+  in a file preview, which does not run scripts. Open it in Safari or Chrome from a URL instead of
+  tapping the downloaded file.</div>
+</div>
+<noscript><div style="padding:14px 16px;background:#fdeaea;color:#7a1a1a">
+JavaScript 已停用，本作業無法使用。請在瀏覽器設定中啟用 JavaScript。
+/ JavaScript is disabled; this assignment cannot run. Enable it in your browser settings.
+</div></noscript>
+
+<div id="app">
+  <header class="top">
+    <h1 data-i18n="appTitle">反思寫作歷程紀錄器</h1>
+    <button class="sm" id="langBtn">English</button>
+  </header>
+  <p class="sub" data-i18n="appSub">四階段流程：獨立初稿 → AI 協助修改 → 標註修改 → 最終送出並產生 PDF。所有資料只存在你自己的裝置。</p>
+
+  <div id="integBanner"></div>
+
+  <div class="stages" id="stageBar"></div>
+
+  <!-- ============ STAGE 1 ============ -->
+  <section class="card" id="s1">
+    <h2><span data-i18n="s1Title">Stage 1 · 獨立初稿</span> <span class="badge" id="s1Badge"></span></h2>
+    <p class="hint" data-i18n="s1Hint">請依課堂手稿，將初稿逐字輸入於下方（本階段停用貼上、拖放與右鍵）。</p>
+    <div class="row">
+      <div><label data-i18n="fWeek">第幾週</label><input type="text" id="stWeek" inputmode="numeric" autocomplete="off"></div>
+      <div><label data-i18n="fName">姓名</label><input type="text" id="stName" autocomplete="off"></div>
+      <div><label data-i18n="fId">學號</label><input type="text" id="stId" autocomplete="off"></div>
+      <div><label data-i18n="fCourse">課程／班級</label><input type="text" id="stCourse" autocomplete="off"></div>
+    </div>
+
+    <label for="draft" data-i18n="fDraft">初稿內容</label>
+    <textarea id="draft" spellcheck="true" autocomplete="off" autocapitalize="sentences"></textarea>
+    <div class="meter">
+      <span><span data-i18n="mWords">字數</span>: <b id="d_wc">0</b> <span id="d_range" class="mini"></span></span>
+      <span><span data-i18n="mKeys">輸入次數</span>: <b id="d_keys">0</b></span>
+      <span><span data-i18n="mPaste">已阻擋貼上</span>: <b id="d_paste">0</b></span>
+      <span id="d_state"></span>
+    </div>
+    <div id="s1msg"></div>
+    <div class="acts">
+      <button class="pri" id="s1Submit" data-i18n="s1Submit">送出並鎖定初稿</button>
+      <span class="mini" id="s1Saved"></span>
+      <span class="spacer"></span>
+      <button class="sm" id="s1Pdf" data-i18n="s1Pdf">匯出初稿 PDF</button>
+      <button class="sm" id="s1Unlock" data-i18n="s1Unlock">解鎖重寫</button>
+    </div>
+  </section>
+
+  <!-- ============ STAGE 2 ============ -->
+  <section class="card hidden" id="s2">
+    <h2><span data-i18n="s2Title">Stage 2 · AI 協助修改</span> <span class="badge" id="s2Badge"></span></h2>
+    <p class="hint" data-i18n="s2Hint">此階段允許使用 AI。複製你的初稿，貼到任何 AI 工具請它提供建議，再把修改後的版本貼回下方。</p>
+    <h3 data-i18n="s2Locked">初稿（可複製）</h3>
+    <div class="lock" id="s2Draft"></div>
+    <div class="acts"><button id="s2Copy" data-i18n="s2Copy">複製初稿</button><span class="mini" id="s2CopyMsg"></span></div>
+    <label for="revised" data-i18n="s2Rev">AI 協助後的版本（此處可貼上）</label>
+    <textarea id="revised" spellcheck="true"></textarea>
+    <div class="meter"><span><span data-i18n="mWords">字數</span>: <b id="r_wc">0</b> <span id="r_range" class="mini"></span></span><span class="mini" id="s2Saved"></span></div>
+    <div id="s2msg"></div>
+    <div class="acts"><button class="pri" id="s2Submit" data-i18n="s2Submit">儲存並進入標註</button></div>
+  </section>
+
+  <!-- ============ STAGE 3 ============ -->
+  <section class="card hidden" id="s3">
+    <h2><span data-i18n="s3Title">Stage 3 · 標註與說明修改</span> <span class="badge" id="s3Badge"></span></h2>
+    <p class="hint" data-i18n="s3Hint">系統已自動比對兩個版本並列出每一處差異。請為每一處選擇類型並簡述理由。</p>
+    <h3 data-i18n="s3Diff">逐字比對</h3>
+    <div class="diff" id="diffView"></div>
+    <p class="mini" data-i18n="s3Legend">刪除線＝初稿被移除的內容；底線＝修改後新增的內容。</p>
+    <h3><span data-i18n="s3List">修改清單</span> <span class="mini" id="s3Count"></span></h3>
+    <div id="chgList"></div>
+    <div id="s3msg"></div>
+    <div class="acts"><button class="pri" id="s3Submit" data-i18n="s3Submit">完成標註</button><button class="sm" id="s3Redo" data-i18n="s3Redo">重新比對</button></div>
+  </section>
+
+  <!-- ============ STAGE 4 ============ -->
+  <section class="card hidden" id="s4">
+    <h2><span data-i18n="s4Title">Stage 4 · 最終送出與 PDF</span> <span class="badge" id="s4Badge"></span></h2>
+    <label for="finaltext" data-i18n="fFinal">最終版本</label>
+    <p class="hint" data-i18n="s4Hint">最終版本即為第二階段的修訂版，此處不可編輯。如需修改內容，請回到第二階段修改後重新標註。</p>
+    <textarea id="finaltext" spellcheck="true" readonly></textarea>
+    <div class="meter"><span><span data-i18n="mWords">字數</span>: <b id="f_wc">0</b> <span id="f_range" class="mini"></span></span></div>
+
+    <fieldset>
+      <legend data-i18n="aiLegend">AI 使用聲明（選填）</legend>
+      <div class="radios">
+        <label><input type="radio" name="aiUsed" value="yes"> <span data-i18n="aiYes">我在此作業中使用了 AI 工具</span></label>
+        <label><input type="radio" name="aiUsed" value="no"> <span data-i18n="aiNo">我沒有使用 AI 工具</span></label>
+      </div>
+      <div id="aiFields">
+        <label data-i18n="aiTools">使用的工具與版本</label>
+        <input type="text" id="aiTools" placeholder="ChatGPT, Claude, Gemini, Grammarly…">
+        <label data-i18n="aiExtent">協助程度</label>
+        <select id="aiExtent"></select>
+      </div>
+    </fieldset>
+
+    <div class="note" style="margin-top:16px">
+      <label style="margin:0 0 6px"><input type="checkbox" id="honest" style="width:auto;margin-right:6px"><span data-i18n="honest">我確認以上紀錄真實無誤：初稿為本人獨立完成，所有 AI 協助之處均已標註與聲明。</span></label>
+    </div>
+    <div id="s4msg"></div>
+    <div class="acts">
+      <button class="pri" id="s4Submit" data-i18n="s4Submit">最終送出</button>
+      <button id="pdfBtn" data-i18n="pdfBtn">產生 PDF</button>
+      <span class="spacer"></span>
+      <button id="newWeekBtn" data-i18n="newWeek">開始新一週作業</button>
+      <span class="mini" id="s4Saved"></span>
+    </div>
+  </section>
+
+  <div class="card">
+    <h2 data-i18n="backupTitle">備份與轉移</h2>
+    <p class="hint" data-i18n="backupHint">紀錄只存在這台裝置的這個瀏覽器中。若要換裝置或擔心瀏覽器清除資料，請匯出進度檔（.json）自行保存；請勿使用無痕模式。</p>
+    <div class="acts">
+      <button id="pdfBtn2" data-i18n="pdfBtn">產生 PDF</button>
+      <button id="expBtn" data-i18n="exp">匯出進度檔</button>
+      <button id="impBtn" data-i18n="imp">匯入進度檔</button>
+      <input type="file" id="impFile" accept=".json,application/json" class="hidden">
+      <span class="spacer"></span>
+      <button class="danger sm" id="resetBtn" data-i18n="reset">全部清除</button>
+    </div>
+    <p class="mini" id="storeMsg" style="margin-top:10px"></p>
+  </div>
+</div>
+
+<div id="print"></div>
+
+<script id="appcode">
+"use strict";
+/* Integrity baseline — computed over this script (with the two constants below
+   blanked) plus the element-id signature of the page. Do not edit by hand. */
+var EXPECTED_CODE_HASH="0B18B2CF211B9E6B";
+var EXPECTED_DOM_HASH="";
+
+/* ---- Assignment settings ---------------------------------------------------
+   The word range for every weekly reflection. The same file is reused for all
+   weeks; the week number the student enters identifies which assignment it is.
+   To change the range, edit these two numbers and nothing else.            */
+/* Word limits. WORD_* applies to the revised version (Stage 2), which is also
+   the final text shown at Stage 4; DRAFT_* applies to the Stage 1 in-class
+   draft. They are the same range by default; keep the pairs separate so the
+   draft floor can be loosened without changing the graded requirement. */
+var WORD_MIN=50, WORD_MAX=200;
+var DRAFT_MIN=50, DRAFT_MAX=200;
+/* Per-keystroke timing log for Stage 1. Each edit to the draft appends one
+   [gap_ms, chars_added] pair, so the typing rhythm can be inspected on the PDF
+   and in the exported .json. Pasting into the draft box is blocked and counted,
+   so the log should read as typing throughout. KEY_CAP bounds the stored
+   log; KEY_GAP caps a single recorded gap (a student who leaves the tab open
+   overnight would otherwise store one absurd number); KEY_BULK is the size at
+   which one edit counts as a paste-like insertion rather than typing. */
+var KEY_CAP=6000, KEY_GAP=900000, KEY_BULK=15;
+/* ------------------------------------------------------------ paste guard */
+function guard(ta){
+  function bump(kind,e){
+    e.preventDefault(); e.stopPropagation();
+    if(!S.draft.integ) S.draft.integ={paste:0,drop:0,bulk:0};
+    S.draft.integ[kind]=(S.draft.integ[kind]||0)+1; save(); paintMeter();
+    msg("s1msg",T("pasteBlocked"),"warn");
+    clearTimeout(bump._t); bump._t=setTimeout(function(){ msg("s1msg",""); },2600);
+    return false;
+  }
+  ta.addEventListener("paste",function(e){ return bump("paste",e); });
+  ta.addEventListener("drop",function(e){ return bump("drop",e); });
+  ta.addEventListener("dragover",function(e){ e.preventDefault(); });
+  ta.addEventListener("contextmenu",function(e){ e.preventDefault(); });
+  ta.addEventListener("beforeinput",function(e){
+    if(e.inputType==="insertFromPaste"||e.inputType==="insertFromDrop"||e.inputType==="insertFromPasteAsQuotation"||e.inputType==="insertFromYank"){ bump("paste",e); }
+  });
+  ta.addEventListener("keydown",function(e){
+    var k=(e.key||"").toLowerCase();
+    if((e.ctrlKey||e.metaKey)&&(k==="v")) return bump("paste",e);
+    if(e.shiftKey&&e.ctrlKey&&k==="v") return bump("paste",e);
+    if(e.shiftKey&&e.key==="Insert") return bump("paste",e);
+  });
+}
+
+/* ------------------------------------------------------------------ i18n */
+var I18N = {
+ zh:{
+  appTitle:"反思寫作歷程紀錄器", langBtn:"English",
+  appSub:"四階段流程：課堂初稿 → AI 協助修改 → 標註修改 → 最終送出並產生 PDF。所有資料只存在你自己的裝置。",
+  newWeek:"開始新一週作業",
+  confNewWeek:"這會清除目前的紀錄，並保留你的姓名與學號，開始新一週的作業。\n\n請先確認已產生 PDF 並匯出進度檔。要繼續嗎？",
+  stage:"階段", st1:"獨立初稿", st2:"AI 協助修改", st3:"標註修改", st4:"最終送出",
+  s1Title:"Stage 1 · 課堂初稿",
+  s1Hint:"請依課堂手稿，將初稿逐字輸入於下方，內容須與手稿一致；本階段停用貼上、拖放與右鍵選單，嘗試貼上會被記錄。送出後初稿會鎖定；如需重寫請按「解鎖重寫」（Stage 2–4 的紀錄會一併清除）。",
+  pasteBlocked:"此階段禁止貼上，已阻擋並記錄。", bulkNote:"偵測到一次大量文字輸入，已記錄。",
+  fName:"姓名", fId:"學號", fCourse:"課程／班級", fWeek:"第幾週", fDraft:"初稿內容",
+  fSerial:"作業編號", serialRule:"編號規則：W(週次)-學號-(週次＋學號各位數字之和)。教師可自行核算驗證。",
+  errWeek:"請填寫週次（1–30 的整數）。",
+  integOK:"程式碼完整性檢查：正常。", integBad:"警告：本檔案的程式碼已被修改，PDF 將標記為「已變更」。",
+  lockedFinal:"已完成最終送出，紀錄已鎖定為唯讀。請先儲存或列印 PDF；若要整份重做，請使用下方的「全部清除」重新開始（原紀錄將無法復原）。",
+  draftChanged:"初稿已修改，原本的修改對照已失效，請回到第三階段重新比對。",
+  mWords:"字數", mKeys:"輸入次數", mPaste:"已阻擋貼上",
+  s1Submit:"送出並鎖定初稿", s1Unlock:"解鎖重寫", s1Pdf:"匯出初稿 PDF",
+  confUnlock:"解鎖會清除 Stage 2–4 的所有紀錄，確定嗎？",
+  s2Title:"Stage 2 · AI 協助修改",
+  s2Hint:"此階段允許使用 AI。複製你的初稿，貼到任何 AI 工具請它提供建議，再把修改後的版本貼回下方。",
+  s2Locked:"初稿（可複製）", s2Copy:"複製初稿", s2Rev:"AI 協助後的版本（此處可貼上）",
+  s2Submit:"儲存並進入標註",
+  s3Title:"Stage 3 · 標註與說明修改",
+  s3Hint:"系統已自動比對兩個版本並列出每一處差異。請為每一處選擇類型並簡述理由。",
+  s3Diff:"逐字比對", s3Legend:"刪除線＝初稿被移除的內容；底線＝修改後新增的內容。",
+  s3List:"修改清單", s3Submit:"完成標註", s3Redo:"重新比對",
+  redoDone:"已重新比對：共 {n} 處修改。",
+  redoSame:"已重新比對，結果與原本相同（共 {n} 處修改）。若要更改，請回到第二階段修改 AI 協助後的版本，再按「完成修改」。",
+  redoNone:"兩段文字完全相同，沒有偵測到任何修改。請回到第二階段貼上 AI 協助後的版本。",
+  redoEmpty:"第二階段尚未填入 AI 協助後的版本，無法比對。",
+  s4Title:"Stage 4 · 最終送出與 PDF", fFinal:"最終版本",
+  s4Hint:"最終版本即為第二階段的修訂版，此處不可編輯。如需修改內容，請回到第二階段修改後重新標註。",
+  aiLegend:"AI 使用聲明（選填）", aiYes:"我在此作業中使用了 AI 工具", aiNo:"我沒有使用 AI 工具",
+  aiTools:"使用的工具與版本", aiExtent:"協助程度",
+  honest:"我確認以上紀錄真實無誤：初稿為本人獨立完成，所有 AI 協助之處均已標註與聲明。",
+  s4Submit:"最終送出", pdfBtn:"產生 PDF",
+  backupTitle:"備份與轉移", backupHint:"紀錄只存在這台裝置的這個瀏覽器中。若要換裝置或擔心瀏覽器清除資料，請匯出進度檔（.json）自行保存；請勿使用無痕模式。",
+  exp:"匯出進度檔", imp:"匯入進度檔", reset:"全部清除",
+  chgType:"修改類型", chgWhy:"修改理由", chgSel:"— 請選擇 —",
+  t_grammar:"文法／拼字", t_word:"用字遣詞", t_clarity:"表達更清楚", t_structure:"結構／順序",
+  t_content:"新增或刪除內容", t_tone:"語氣／風格", t_length:"長度調整", t_other:"其他",
+  x_none:"未使用", x_proof:"僅校對文法拼字", x_sugg:"建議修改，我自行取捨",
+  x_rewrite:"AI 改寫部分句子", x_heavy:"AI 大幅改寫", x_other:"其他（請於下方說明）",
+  badgeDone:"已完成", badgeLock:"已鎖定", badgeOpen:"進行中", badgeWait:"尚未開始",
+  errName:"請填寫姓名與學號。", errWc:"字數需在 {min}–{max} 之間，目前 {n} 字。",
+  errEmptyRev:"請貼上 AI 協助後的版本。", errSameRev:"修改後版本與初稿完全相同，請確認是否已修改。",
+  errChg:"還有 {n} 處修改尚未填寫類型或理由。", errHonest:"請勾選誠信確認。",
+  errFinal:"最終版本字數需在 {min}–{max} 之間。請回到第二階段修改修訂版。",
+  errRevWc:"修訂版字數需在 {min}–{max} 之間（目前 {n} 字）。",
+  okDraft:"初稿已鎖定於 {t}。", okRev:"已儲存於 {t}。", okFinal:"最終送出於 {t}，紀錄碼 {c}。",
+  savedAt:"儲存於 {t}", copied:"已複製，可貼到 AI 工具。", copyFail:"無法自動複製，請手動選取上方文字。",
+  noDiff:"兩版本沒有差異。若確實有修改，請按「重新比對」。",
+  cWords:"字", cRange:"（需 {min}–{max}）", cOk:"符合", cBad:"不符",
+  confReset:"確定要清除所有資料嗎？此動作無法復原。",
+
+  noStore:"注意：此瀏覽器無法自動儲存進度（可能為離線檔案限制）。請務必用「匯出進度檔」自行保存。",
+  okStore:"進度會自動儲存在此瀏覽器。",
+  pdfHint:"列印視窗開啟後，請選擇「另存為 PDF / Save as PDF」。",
+  needStage:"請先完成前一階段。",
+  /* print */
+  pDoc:"反思寫作歷程紀錄", pDocS1:"初稿紀錄（Stage 1）",
+  pS1Only:"本文件僅為初稿紀錄，不是最終送出版本；完整歷程請於 Stage 4 產生 PDF。",
+  pStudent:"學生", pIdL:"學號", pCourseL:"課程", pAsg:"作業",
+  pWeekL:"週次", pSerialL:"作業編號", pIntegL:"檔案完整性", pIntegOK:"正常（未偵測到程式碼變更）", pIntegBad:"已變更（程式碼與原始發布版本不符）",
+  pGen:"產生時間", pCode:"紀錄碼", pPromptL:"題目",
+  pS1:"一、初稿（Stage 1，獨立撰寫）", pS2:"二、AI 協助後版本（Stage 2）",
+  pS3:"三、修改紀錄（Stage 3）", pS3b:"逐字比對", pS4:"四、最終送出版本（Stage 4）",
+  pAI:"五、AI 使用聲明", pSign:"六、學生確認",
+  pNo:"編號", pFrom:"初稿", pTo:"修改後", pType:"類型", pWhy:"理由",
+  pWcL:"字數", pPasteL:"初稿階段阻擋貼上次數", pAtL:"時間",
+  pDevL:"輸入裝置", pDevTouch:"（觸控裝置：預測輸入會使打字歷程出現大量整詞插入，屬正常現象）",
+  pKeyL:"打字歷程（初稿）", pKeyEv:"輸入事件數", pKeyTyped:"輸入字元", pKeyDel:"刪除",
+  pKeyActive:"實際輸入時間", pKeyCpm:"平均速度（字元/分）", pKeyMed:"輸入間隔中位數",
+  pKeyGap:"最長停頓", pKeyBulk:"一次插入 15 字以上的次數", pKeyMaxIns:"單次最大插入字元",
+  pKeyCap:"（紀錄已達上限）",
+  pKeyLeg:"上圖：每個長條代表一次輸入，橫軸為時間，高度為該次輸入的字元數；紅色長條表示一次插入 15 字以上。底部刻度為每分鐘。逐字輸入會呈現密集且高度相近的細線。",
+  pKeyNone:"無打字歷程紀錄（初稿可能在此功能加入前完成，或由匯入的進度檔還原）。",
+  pAiUsed:"是否使用 AI", pYes:"是", pNoo:"否", pNotDecl:"未聲明",
+  pDel:"（刪除）", pIns:"（新增）",
+  pSignTxt:"本人確認：Stage 1 初稿為本人獨立完成，未使用 AI 或他人協助；所有 AI 協助之修改均已於上表標註並於第五節聲明。",
+  pSignLine:"學生簽名", pDate:"日期", pUnsigned:"※ 學生尚未勾選誠信確認。",
+  pNotSub:"（尚未送出）", pNoChg:"（無標註之修改）"
+ },
+ en:{
+  appTitle:"Reflection Writing Tracker", langBtn:"中文",
+  appSub:"Four stages: independent draft \u2192 AI-assisted revision \u2192 annotate changes \u2192 final submission and PDF. All data stays on your own device.",
+  newWeek:"Start a new week",
+  confNewWeek:"This clears the current record and starts a new week, keeping your name and student ID.\n\nMake sure you have generated the PDF and exported the progress file first. Continue?",
+  stage:"Stage", st1:"Independent draft", st2:"AI-assisted revision", st3:"Annotate changes", st4:"Final submission",
+  s1Title:"Stage 1 \u00b7 In-class draft",
+  s1Hint:"Type the draft you wrote in class into the box below; it must match your handwritten original. Pasting, dropping text and the right-click menu are disabled at this stage, and paste attempts are logged. The draft locks when you submit it; use Unlock and rewrite if you need to change it (this clears Stages 2\u20134).",
+  pasteBlocked:"Pasting is disabled at this stage; the attempt was blocked and logged.",
+  bulkNote:"A large block of text appeared at once; this was logged.",
+  fName:"Name", fId:"Student ID", fCourse:"Course / class", fWeek:"Week no.", fDraft:"Draft",
+  fSerial:"Assignment serial", serialRule:"Rule: W(week)-StudentID-(week + sum of the digits in the ID). The instructor can recompute this by hand to verify.",
+  errWeek:"Please enter the week number (an integer from 1 to 30).",
+  integOK:"Code integrity check: passed.", integBad:"Warning: this file's code has been modified. The PDF will be marked as ALTERED.",
+  lockedFinal:"Final submission complete; the record is now read-only. Save or print the PDF first \u2014 to redo the whole assignment, use \u300c\u5168\u90e8\u6e05\u9664\u300d / Clear everything below (the old record cannot be recovered).",
+  draftChanged:"The draft was edited, so the previous change comparison is void. Go back to Stage 3 and compare again.",
+  mWords:"Words", mKeys:"Input events", mPaste:"Paste attempts blocked",
+  s1Submit:"Submit and lock draft", s1Unlock:"Unlock and rewrite", s1Pdf:"Export draft PDF",
+  confUnlock:"Unlocking clears Stages 2\u20134. Continue?",
+  s2Title:"Stage 2 \u00b7 AI-assisted revision",
+  s2Hint:"AI is allowed at this stage. Copy your draft, paste it into any AI tool for suggestions, then paste the revised version below.",
+  s2Locked:"Your draft (copyable)", s2Copy:"Copy draft", s2Rev:"Revised version (pasting allowed here)",
+  s2Submit:"Save and annotate",
+  s3Title:"Stage 3 \u00b7 Annotate and explain changes",
+  s3Hint:"The two versions have been compared automatically. Choose a type and give a short reason for each change.",
+  s3Diff:"Word-level comparison", s3Legend:"Strikethrough = removed from the draft; underline = added in the revision.",
+  s3List:"Change list", s3Submit:"Finish annotation", s3Redo:"Re-compare",
+  redoDone:"Re-compared: {n} change(s) found.",
+  redoSame:"Re-compared — the result is unchanged ({n} change(s)). To change it, go back to Stage 2, edit the AI-assisted version, and press Finish revision again.",
+  redoNone:"The two versions are identical; no changes detected. Go back to Stage 2 and paste the AI-assisted version.",
+  redoEmpty:"Stage 2 has no AI-assisted version yet, so there is nothing to compare.",
+  s4Title:"Stage 4 \u00b7 Final submission and PDF", fFinal:"Final version",
+  s4Hint:"The final version is the revised text from Stage 2 and cannot be edited here. To change it, go back to Stage 2, edit it there and re-annotate the changes.",
+  aiLegend:"AI-use disclosure (optional)", aiYes:"I used AI tools for this assignment", aiNo:"I did not use AI tools",
+  aiTools:"Tools and versions used", aiExtent:"Extent of assistance",
+  honest:"I confirm this record is accurate: the draft is my own independent work, and all AI assistance is annotated and disclosed.",
+  s4Submit:"Submit final", pdfBtn:"Generate PDF",
+  backupTitle:"Backup and transfer", backupHint:"Your record is stored only in this browser on this device. Export a progress file (.json) if you switch devices or your browser may clear its data; do not use private/incognito mode.",
+  exp:"Export progress", imp:"Import progress", reset:"Clear everything",
+  chgType:"Change type", chgWhy:"Reason for the change", chgSel:"\u2014 select \u2014",
+  t_grammar:"Grammar / spelling", t_word:"Word choice", t_clarity:"Clarity", t_structure:"Structure / order",
+  t_content:"Content added or removed", t_tone:"Tone / style", t_length:"Length", t_other:"Other",
+  x_none:"Not used", x_proof:"Proofreading only (grammar/spelling)", x_sugg:"Suggestions only, I chose what to accept",
+  x_rewrite:"AI rewrote some sentences", x_heavy:"AI rewrote extensively", x_other:"Other (explain below)",
+  badgeDone:"complete", badgeLock:"locked", badgeOpen:"in progress", badgeWait:"not started",
+  errName:"Please enter your name and student ID.", errWc:"Word count must be {min}\u2013{max}; currently {n}.",
+  errEmptyRev:"Please paste your revised version.", errSameRev:"The revised version is identical to the draft.",
+  errChg:"{n} change(s) still need a type and a reason.", errHonest:"Please tick the confirmation box.",
+  errFinal:"The final version must be {min}\u2013{max} words. Go back to Stage 2 to edit the revised text.",
+  errRevWc:"The revised version must be {min}\u2013{max} words (currently {n}).",
+  okDraft:"Draft locked at {t}.", okRev:"Saved at {t}.", okFinal:"Submitted at {t}. Record code {c}.",
+  savedAt:"saved {t}", copied:"Copied \u2014 paste it into your AI tool.", copyFail:"Automatic copy failed; please select the text above manually.",
+  noDiff:"No differences found between the two versions. If you did revise, press Re-compare.",
+  cWords:"words", cRange:"(need {min}\u2013{max})", cOk:"OK", cBad:"out of range",
+  confReset:"Clear all data? This cannot be undone.",
+
+
+  noStore:"Note: this browser cannot auto-save your progress (offline-file restriction). Please use Export progress to keep a copy.",
+  okStore:"Progress is auto-saved in this browser.",
+  pdfHint:"When the print dialog opens, choose \u201cSave as PDF\u201d.",
+  needStage:"Complete the previous stage first.",
+  pDoc:"Reflection Writing Process Record", pDocS1:"Draft record (Stage 1)",
+  pS1Only:"This document is the Stage 1 draft record only, not the final submission; generate the full PDF at Stage 4.",
+  pStudent:"Student", pIdL:"Student ID", pCourseL:"Course", pAsg:"Assignment",
+  pWeekL:"Week", pSerialL:"Assignment serial", pIntegL:"File integrity", pIntegOK:"Passed (no code modification detected)", pIntegBad:"ALTERED (code differs from the published version)",
+  pGen:"Generated", pCode:"Record code", pPromptL:"Prompt",
+  pS1:"1. Initial draft (Stage 1, written independently)", pS2:"2. AI-assisted version (Stage 2)",
+  pS3:"3. Revision history (Stage 3)", pS3b:"Word-level comparison", pS4:"4. Final submission (Stage 4)",
+  pAI:"5. AI-use disclosure", pSign:"6. Student confirmation",
+  pNo:"#", pFrom:"Draft", pTo:"Revised", pType:"Type", pWhy:"Reason",
+  pWcL:"Words", pPasteL:"Paste attempts blocked in Stage 1", pAtL:"Time",
+  pDevL:"Input device", pDevTouch:"(touch device: predictive keyboards insert whole words, so bulk insertions are expected)",
+  pKeyL:"Typing log (draft)", pKeyEv:"Input events", pKeyTyped:"Characters entered", pKeyDel:"deleted",
+  pKeyActive:"Active writing time", pKeyCpm:"Mean speed (chars/min)", pKeyMed:"Median input interval",
+  pKeyGap:"Longest pause", pKeyBulk:"Insertions of 15+ characters", pKeyMaxIns:"Largest single insertion",
+  pKeyCap:"(log reached its cap)",
+  pKeyLeg:"Above: one bar per input event, positioned by time; bar height is the number of characters added. Red bars are single insertions of 15+ characters. Bottom ticks mark one minute. Character-by-character typing appears as dense bars of even height.",
+  pKeyNone:"No typing log recorded (this draft may predate the feature, or was restored from an imported progress file).",
+  pAiUsed:"AI used", pYes:"Yes", pNoo:"No", pNotDecl:"Not disclosed",
+  pDel:"(deleted)", pIns:"(added)",
+  pSignTxt:"I confirm that the Stage 1 draft is my own independent work, produced without AI or other assistance, and that every AI-assisted change is annotated in the table above and disclosed in section 5.",
+  pSignLine:"Student signature", pDate:"Date", pUnsigned:"Note: the student did not tick the confirmation box.",
+  pNotSub:"(not submitted)", pNoChg:"(no annotated changes)"
+ }
+};
+var TYPES  = ["t_grammar","t_word","t_clarity","t_structure","t_content","t_tone","t_length","t_other"];
+var EXTENT = ["x_none","x_proof","x_sugg","x_rewrite","x_heavy","x_other"];
+function T(k){ var d=I18N[S.lang]||I18N.zh; return (d[k]!==undefined?d[k]:(I18N.zh[k]!==undefined?I18N.zh[k]:k)); }
+function TF(k,o){ var s=T(k); for(var p in o){ s=s.split("{"+p+"}").join(o[p]); } return s; }
+
+/* ------------------------------------------------------------------ state */
+var LS="rwt.v1", storeOK=true;
+function blank(){return{
+  v:1, lang:"zh", stage:1, maxStage:1, device:"",
+  student:{name:"",id:"",course:"",week:""},
+  draft:{text:"",savedAt:null,keys:[],lastAt:0,integ:{paste:0,drop:0,bulk:0}},
+  revised:{text:"",savedAt:null},
+  changes:[], diffHTML:"", diffFrom:"",
+  ai:{used:"",tools:"",extent:""},
+  final:{text:"",at:null,code:"",honest:false}
+};}
+var S=blank();
+function save(){ if(!storeOK) return; try{ localStorage.setItem(LS,JSON.stringify(S)); }catch(e){ storeOK=false; showStore(); } }
+function load(){
+  try{ var raw=localStorage.getItem(LS); if(!raw) return; var o=JSON.parse(raw);
+    var b=blank(); for(var k in b){ if(o[k]!==undefined){ if(b[k]&&typeof b[k]==="object"&&!Array.isArray(b[k])){ for(var j in b[k]) if(o[k][j]!==undefined) b[k][j]=o[k][j]; } else b[k]=o[k]; } }
+    S=b;
+  }catch(e){}
+}
+/* Input-device context, recorded when the draft is submitted. A phone or tablet
+   keyboard inserts whole words per event via predictive text, so the typing log
+   from a touch device reads like pasting; the PDF prints the device so an
+   instructor can tell the two apart. */
+function probeStore(){ try{ localStorage.setItem("rwt.probe","1"); localStorage.removeItem("rwt.probe"); storeOK=true; }catch(e){ storeOK=false; } }
+function showStore(){ var el=$("storeMsg"); el.textContent = storeOK? T("okStore") : T("noStore"); el.style.color = storeOK? "" : "#b32424"; }
+
+/* ------------------------------------------------------------------ util */
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+var CJK=/[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\u3040-\u30ff]/;
+function wc(t){
+  t=String(t||"");
+  var cjk=(t.match(/[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\u3040-\u30ff]/g)||[]).length;
+  var lat=(t.replace(/[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\u3040-\u30ff]/g," ").match(/[A-Za-z0-9\u2019'\-]+/g)||[]).length;
+  return cjk+lat;
+}
+function stamp(iso){ if(!iso) return "—"; var d=new Date(iso);
+  return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")+" "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0"); }
+function code(){
+  var s=JSON.stringify([S.student,serial(),S.draft.text,S.revised.text,S.changes,S.final.text,S.final.at,INTEG.ok]);
+  var hex=h32(s).slice(0,12);
+  return hex.slice(0,4)+"-"+hex.slice(4,8)+"-"+hex.slice(8,12);
+}
+/* --- assignment serial: W<week>-<ID>-<week + digit sum of ID> --------------- */
+function digitSum(s){ var d=String(s||"").match(/\d/g)||[],t=0; for(var i=0;i<d.length;i++) t+=+d[i]; return t; }
+function serial(){
+  var w=parseInt(S.student.week,10), id=String(S.student.id||"").trim().toUpperCase();
+  if(isNaN(w)||!id) return "";
+  return "W"+String(w).padStart(2,"0")+"-"+id+"-"+(w+digitSum(id));
+}
+/* --- integrity ------------------------------------------------------------- */
+function h32(s){
+  var h1=0x811c9dc5,h2=0x1000193;
+  for(var i=0;i<s.length;i++){ var c=s.charCodeAt(i); h1=Math.imul(h1^c,16777619)>>>0; h2=(Math.imul(h2,33)+c)>>>0; }
+  return (h1.toString(16).padStart(8,"0")+h2.toString(16).padStart(8,"0")).toUpperCase();
+}
+function normCode(t){
+  return String(t||"").replace(/EXPECTED_CODE_HASH\s*=\s*"[^"]*"/,'EXPECTED_CODE_HASH=""')
+                      .replace(/EXPECTED_DOM_HASH\s*=\s*"[^"]*"/,'EXPECTED_DOM_HASH=""')
+                      .replace(/\r\n/g,"\n");
+}
+function domSig(){
+  var ns=document.querySelectorAll("[id],[data-i18n],[name]"), out=[];
+  for(var i=0;i<ns.length;i++){
+    var e=ns[i];
+    out.push(e.tagName+"#"+(e.id||"")+"@"+(e.getAttribute("data-i18n")||"")+"~"+(e.getAttribute("name")||"")+"~"+(e.getAttribute("type")||""));
+  }
+  return out.join("|");
+}
+var INTEG={code:"",dom:"",ok:true,checked:false};
+function checkIntegrity(){
+  var el=document.getElementById("appcode");
+  INTEG.code=h32(normCode(el?el.textContent:""));
+  INTEG.dom=h32(domSig());
+  /* The code hash is enforced. The DOM fingerprint is only printed on the PDF:
+     every student runs the same file, so all submissions must show the same
+     value — the instructor compares across the class instead of to a constant. */
+  INTEG.checked=!!EXPECTED_CODE_HASH;
+  INTEG.ok=!INTEG.checked||INTEG.code===EXPECTED_CODE_HASH;
+  if(EXPECTED_DOM_HASH&&INTEG.dom!==EXPECTED_DOM_HASH) INTEG.ok=false;
+  var b=document.getElementById("integBanner");
+  if(b) b.innerHTML = INTEG.ok ? "" : '<div class="note bad">'+esc(T("integBad"))+'</div>';
+}
+function msg(el,text,kind){ var e=$(el); if(!text){ e.innerHTML=""; return; } e.innerHTML='<div class="note '+(kind||"")+'">'+esc(text)+'</div>'; }
+
+/* ------------------------------------------------------------------ diff */
+function tok(s){
+  var re=/[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\u3040-\u30ff]|[A-Za-z0-9\u2019'\-]+|[^\s]/g;
+  return String(s||"").match(re)||[];
+}
+function joinTok(a){
+  var out="";
+  for(var i=0;i<a.length;i++){
+    var t=a[i];
+    if(i>0){
+      var p=a[i-1];
+      var glue = CJK.test(t)||CJK.test(p)||/^[,.;:!?)\]}\u2019"%\u3001\u3002\uff0c\uff1a\uff1b\uff01\uff1f\uff09]/.test(t)||/^[(\[{\u2018"\uff08]$/.test(p);
+      if(!glue) out+=" ";
+    }
+    out+=t;
+  }
+  return out;
+}
+function lcsDiff(a,b){
+  var n=a.length,m=b.length,i,j;
+  var d=[]; for(i=0;i<=n;i++){ d.push(new Uint16Array(m+1)); }
+  for(i=n-1;i>=0;i--) for(j=m-1;j>=0;j--) d[i][j] = (a[i]===b[j]) ? d[i+1][j+1]+1 : Math.max(d[i+1][j],d[i][j+1]);
+  var ops=[]; i=0;j=0;
+  while(i<n&&j<m){
+    if(a[i]===b[j]){ ops.push(["=",a[i]]); i++; j++; }
+    else if(d[i+1][j]>=d[i][j+1]){ ops.push(["-",a[i]]); i++; }
+    else { ops.push(["+",b[j]]); j++; }
+  }
+  while(i<n){ ops.push(["-",a[i++]]); }
+  while(j<m){ ops.push(["+",b[j++]]); }
+  return ops;
+}
+function computeChanges(){
+  var ops=lcsDiff(tok(S.draft.text),tok(S.revised.text));
+  /* group consecutive non-equal ops */
+  var groups=[],cur=null,html="",same=[];
+  function flushHTML(){ if(same.length){ html+=esc(joinTok(same))+" "; same=[]; } }
+  for(var k=0;k<ops.length;k++){
+    var o=ops[k];
+    if(o[0]==="="){ if(cur){ groups.push(cur); cur=null; } same.push(o[1]); }
+    else{
+      flushHTML();
+      if(!cur) cur={del:[],ins:[]};
+      if(o[0]==="-") cur.del.push(o[1]); else cur.ins.push(o[1]);
+    }
+  }
+  if(cur) groups.push(cur);
+  /* rebuild html in order */
+  html=""; same=[]; cur=null;
+  var open=null;
+  for(var k2=0;k2<ops.length;k2++){
+    var op=ops[k2];
+    if(op[0]==="="){ if(open){ html+=renderGroup(open); open=null; } same.push(op[1]); }
+    else{ if(same.length){ html+=esc(joinTok(same)); same=[]; html+=" "; }
+          if(!open) open={del:[],ins:[]};
+          if(op[0]==="-") open.del.push(op[1]); else open.ins.push(op[1]); }
+  }
+  if(same.length) html+=esc(joinTok(same));
+  if(open) html+=renderGroup(open);
+  S.diffHTML=html; S.diffFrom=S.draft.text;
+
+  /* merge with existing annotations by identical before/after text */
+  var old={},i;
+  for(i=0;i<S.changes.length;i++){ old[S.changes[i].a+"\u0000"+S.changes[i].b]=S.changes[i]; }
+  var out=[];
+  for(i=0;i<groups.length;i++){
+    var a=joinTok(groups[i].del), b=joinTok(groups[i].ins);
+    var key=a+"\u0000"+b, prev=old[key];
+    out.push({a:a,b:b,type:prev?prev.type:"",why:prev?prev.why:""});
+  }
+  S.changes=out;
+}
+function renderGroup(g){
+  var s="";
+  if(g.del.length) s+="<del>"+esc(joinTok(g.del))+"</del>";
+  if(g.del.length&&g.ins.length) s+=" ";
+  if(g.ins.length) s+="<ins>"+esc(joinTok(g.ins))+"</ins>";
+  return s+" ";
+}
+
+
+/* ------------------------------------------------------------------ render */
+function applyI18n(){
+  var ns=document.querySelectorAll("[data-i18n]");
+  for(var i=0;i<ns.length;i++){ ns[i].textContent=T(ns[i].getAttribute("data-i18n")); }
+  $("langBtn").textContent=T("langBtn");
+  document.documentElement.lang = S.lang==="zh"?"zh-Hant":"en";
+  document.title=T("appTitle");
+  var sel=$("aiExtent"); sel.innerHTML="";
+  var o0=document.createElement("option"); o0.value=""; o0.textContent=T("chgSel"); sel.appendChild(o0);
+  for(var e=0;e<EXTENT.length;e++){ var op=document.createElement("option"); op.value=EXTENT[e]; op.textContent=T(EXTENT[e]); sel.appendChild(op); }
+  sel.value=S.ai.extent||"";
+}
+function rangeTxt(n,mn,mx){
+  mn=mn||WORD_MIN; mx=mx||WORD_MAX;
+  var t=TF("cRange",{min:mn,max:mx});
+  var ok=n>=mn&&n<=mx;
+  return '<span class="'+(n===0?"":(ok?"ok":"bad"))+'">'+t+(n===0?"":" "+(ok?T("cOk"):T("cBad")))+'</span>';
+}
+function mmss(ms){ var s=Math.max(0,Math.round(ms/1000)); var m=Math.floor(s/60); return m+":"+String(s%60).padStart(2,"0"); }
+function isTouch(d){ return String(d||"").indexOf("touch")===0; }
+function devInfo(){
+  var touch=(navigator.maxTouchPoints||0)>1||("ontouchstart" in window);
+  var w=window.innerWidth||0, h=window.innerHeight||0;
+  return (touch?"touch":"pointer")+"/"+w+"x"+h;
+}
+function keystats(){
+  var k=(S.draft&&S.draft.keys)||[], gaps=[], i, g, d;
+  var span=0, active=0, typed=0, del=0, bulk=0, maxIns=0, maxGap=0;
+  for(i=0;i<k.length;i++){
+    g=k[i][0]||0; d=k[i][1]||0;
+    span+=g;
+    if(g<=5000) active+=g;                 /* pauses over 5 s are not writing time */
+    if(i>0&&g>0){ gaps.push(g); if(g>maxGap) maxGap=g; }
+    if(d>0){ typed+=d; if(d>maxIns) maxIns=d; if(d>=KEY_BULK) bulk++; } else { del+=-d; }
+  }
+  var med=0;
+  if(gaps.length){ var s=gaps.slice().sort(function(a,b){return a-b;}); med=s[Math.floor(s.length/2)]; }
+  return { n:k.length, span:span, active:active, med:med, maxGap:maxGap, bulk:bulk,
+           maxIns:maxIns, typed:typed, del:del,
+           cpm: active>0? Math.round(typed/(active/60000)) : 0,
+           capped: k.length>=KEY_CAP };
+}
+function keySVG(){
+  var k=(S.draft&&S.draft.keys)||[]; if(!k.length) return "";
+  var W=720, B=38, H=46, i, tot=0;
+  for(i=0;i<k.length;i++) tot+=k[i][0]||0;
+  var bars="", cum=0;
+  for(i=0;i<k.length;i++){
+    cum+=k[i][0]||0;
+    var x=tot>0? (cum/tot)*(W-3) : (k.length>1? (i/(k.length-1))*(W-3) : 0);
+    var d=k[i][1]||0;
+    var h=d>0? Math.min(4+d*2,B) : 3;
+    var col=d>=KEY_BULK? "#b32424" : (d>0? "#2b5fa8" : "#9a9a9a");
+    bars+='<rect x="'+x.toFixed(1)+'" y="'+(B-h).toFixed(1)+'" width="1.5" height="'+h.toFixed(1)+'" fill="'+col+'"/>';
+  }
+  var ticks="", mins=tot>0? Math.floor(tot/60000) : 0;
+  for(i=1;i<=mins&&i<=60;i++){
+    var xx=(i*60000/tot)*(W-3);
+    ticks+='<rect x="'+xx.toFixed(1)+'" y="'+B+'" width="0.7" height="6" fill="#bbb"/>';
+  }
+  return '<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="46" preserveAspectRatio="none" '+
+         'style="border:1px solid #ddd;background:#fbfbfb;display:block">'+bars+ticks+'</svg>';
+}
+function paintMeter(){
+  var n=wc($("draft").value);
+  $("d_wc").textContent=n; $("d_range").innerHTML=rangeTxt(n,DRAFT_MIN,DRAFT_MAX);
+  $("d_keys").textContent=((S.draft.keys&&S.draft.keys.length)||0);
+  var ig=S.draft.integ||{};
+  $("d_paste").textContent=(ig.paste||0)+(ig.drop||0);
+}
+function stageBar(){
+  var bar=$("stageBar"); bar.innerHTML="";
+  var names=["st1","st2","st3","st4"];
+  for(var i=1;i<=4;i++){
+    var b=document.createElement("button");
+    b.innerHTML='<span class="n">'+T("stage")+" "+i+'</span>'+T(names[i-1]);
+    b.setAttribute("aria-current", S.stage===i?"true":"false");
+    if(i>S.maxStage) b.disabled=true;
+    b.setAttribute("data-go",i);
+    bar.appendChild(b);
+  }
+}
+function badge(el,kind){ var e=$(el); e.className="badge"+(kind==="done"?" done":kind==="lockd"?" lockd":"");
+  e.textContent = kind==="done"?T("badgeDone"):kind==="lockd"?T("badgeLock"):kind==="open"?T("badgeOpen"):T("badgeWait"); }
+
+function render(){
+  applyI18n(); stageBar(); showStore();
+  $("integBanner").innerHTML = INTEG.ok ? "" : '<div class="note bad">'+esc(T("integBad"))+'</div>';
+
+  /* stage panels */
+  for(var i=1;i<=4;i++){ $("s"+i).classList[S.stage===i?"remove":"add"]("hidden"); }
+
+  /* stage 1 */
+  $("stName").value=S.student.name; $("stId").value=S.student.id;
+  $("stCourse").value=S.student.course; $("stWeek").value=S.student.week;
+  $("draft").value=S.draft.text;
+  var locked=!!S.draft.savedAt;
+  $("draft").readOnly=locked; $("stName").readOnly=locked; $("stId").readOnly=locked;
+  $("stCourse").readOnly=locked; $("stWeek").readOnly=locked;
+  $("draft").style.background=locked?"#f8fafc":"#fff";
+  $("s1Submit").disabled=locked; $("s1Unlock").classList[locked?"remove":"add"]("hidden");
+  $("s1Saved").textContent=locked?TF("okDraft",{t:stamp(S.draft.savedAt)}):"";
+  badge("s1Badge",locked?"lockd":"open");
+  paintMeter();
+
+  /* stage 2 */
+  $("s2Draft").textContent=S.draft.text;
+  $("revised").value=S.revised.text;
+  $("r_wc").textContent=wc(S.revised.text); $("r_range").innerHTML=rangeTxt(wc(S.revised.text));
+  $("s2Saved").textContent=S.revised.savedAt?TF("savedAt",{t:stamp(S.revised.savedAt)}):"";
+  badge("s2Badge",S.revised.savedAt?"done":(S.maxStage>=2?"open":"wait"));
+
+  /* stage 3 */
+  $("diffView").innerHTML=S.diffHTML||"";
+  renderChanges();
+  badge("s3Badge",S.maxStage>=4?"done":(S.maxStage>=3?"open":"wait"));
+
+  /* stage 4 */
+  if(!S.final.at) S.final.text=S.revised.text||"";   /* Stage 4 confirms; it never edits */
+  $("finaltext").value=S.final.text||"";
+  $("finaltext").readOnly=true;
+  $("f_wc").textContent=wc($("finaltext").value); $("f_range").innerHTML=rangeTxt(wc($("finaltext").value));
+  var rs=document.getElementsByName("aiUsed");
+  for(var r=0;r<rs.length;r++) rs[r].checked=(rs[r].value===S.ai.used);
+  $("aiTools").value=S.ai.tools; $("aiExtent").value=S.ai.extent||"";
+  $("aiFields").classList[S.ai.used==="no"?"add":"remove"]("hidden");
+  $("honest").checked=!!S.final.honest;
+  $("s4Saved").textContent=S.final.at?TF("okFinal",{t:stamp(S.final.at),c:S.final.code}):"";
+  $("pdfBtn").disabled=false; $("newWeekBtn").disabled=!S.final.at;
+  badge("s4Badge",S.final.at?"done":(S.maxStage>=4?"open":"wait"));
+
+  /* after final submission the whole record becomes read-only */
+  var fin=!!S.final.at, ids=["draft","stName","stId","stCourse","stWeek","s1Submit","s1Unlock",
+                            "revised","aiTools","aiExtent","honest","s2Submit","s3Submit","s3Redo","s4Submit"];
+  /* The Stage 1 fields are already locked by the draft lock above, so this loop
+     must not un-lock them when the record is merely unsubmitted: it takes the
+     union of the two locks, never overwrites the draft lock with false. */
+  var s1ids=",draft,stName,stId,stCourse,stWeek,s1Submit,";
+  for(var q=0;q<ids.length;q++){ var e=$(ids[q]); if(!e) continue;
+    var v=fin||(locked&&s1ids.indexOf(","+ids[q]+",")>=0);
+    if(e.tagName==="TEXTAREA"||e.tagName==="INPUT"&&e.type==="text") e.readOnly=v; else e.disabled=v; }
+  var rr=document.getElementsByName("aiUsed"); for(var z=0;z<rr.length;z++) rr[z].disabled=fin;
+  var sels=$("chgList").querySelectorAll("select,input");
+  for(var y=0;y<sels.length;y++){ sels[y].disabled=fin; }
+  if(fin) msg("s4msg",T("lockedFinal"),"warn");
+}
+function renderChanges(){
+  var box=$("chgList"); box.innerHTML="";
+  if(!S.changes.length){ box.innerHTML='<p class="mini">'+esc(T("noDiff"))+'</p>'; $("s3Count").textContent=""; return; }
+  var done=0;
+  for(var i=0;i<S.changes.length;i++){
+    var c=S.changes[i];
+    if(c.type&&String(c.why).trim()) done++;
+    var d=document.createElement("div"); d.className="chg";
+    var opts='<option value="">'+esc(T("chgSel"))+'</option>';
+    for(var t=0;t<TYPES.length;t++){ opts+='<option value="'+TYPES[t]+'"'+(c.type===TYPES[t]?" selected":"")+'>'+esc(T(TYPES[t]))+'</option>'; }
+    d.innerHTML=
+      '<div class="head"><span class="tag">#'+(i+1)+'</span></div>'+
+      '<div class="pair">'+
+        (c.a?'<span class="a">'+esc(c.a)+'</span>':'<span class="mini">'+esc(T("pIns"))+'</span>')+
+        '<span class="arw">\u2192</span>'+
+        (c.b?'<span class="b">'+esc(c.b)+'</span>':'<span class="mini">'+esc(T("pDel"))+'</span>')+
+      '</div>'+
+      '<label>'+esc(T("chgType"))+'</label><select data-ci="'+i+'" data-f="type">'+opts+'</select>'+
+      '<label>'+esc(T("chgWhy"))+'</label><input type="text" data-ci="'+i+'" data-f="why" value="'+esc(c.why)+'">';
+    box.appendChild(d);
+  }
+  $("s3Count").textContent="("+done+"/"+S.changes.length+")";
+}
+
+/* ------------------------------------------------------------------ print doc */
+function extentLabel(){ return S.ai.extent?T(S.ai.extent):"—"; }
+function buildPrint(mode){
+  var L=T, out=[], draftOnly=(mode==="s1");
+  var wcF=wc(S.final.text), wcD=wc(S.draft.text), wcR=wc(S.revised.text);
+  out.push('<h1 class="doc">'+esc(L(draftOnly?"pDocS1":"pDoc"))+'</h1>');
+  out.push('<table style="margin-bottom:6mm"><tbody>'+
+    '<tr><th style="width:26%">'+esc(L("pStudent"))+'</th><td>'+esc(S.student.name||"—")+'</td>'+
+        '<th style="width:18%">'+esc(L("pIdL"))+'</th><td>'+esc(S.student.id||"—")+'</td></tr>'+
+    '<tr><th>'+esc(L("pCourseL"))+'</th><td>'+esc(S.student.course||"—")+'</td>'+
+        '<th>'+esc(L("pWeekL"))+'</th><td>'+esc(S.student.week||"—")+'</td></tr>'+
+    '<tr><th>'+esc(L("pSerialL"))+'</th><td><b>'+esc(serial()||"—")+'</b></td>'+
+        '<th>'+esc(L("pCode"))+'</th><td>'+esc(S.final.code||"—")+'</td></tr>'+
+    '<tr><th>'+esc(L("pIntegL"))+'</th><td colspan="3">'+esc(INTEG.ok?L("pIntegOK"):L("pIntegBad"))+
+        ' <span style="font-size:8pt">['+esc(INTEG.code.slice(0,8)+"/"+INTEG.dom.slice(0,8))+']</span></td></tr>'+
+    '<tr><th>'+esc(L("pGen"))+'</th><td colspan="3">'+esc(stamp(new Date().toISOString()))+'</td></tr>'+
+    '</tbody></table>');
+
+  out.push('<div class="psec"><h2>'+esc(L("pS1"))+'</h2>'+
+    '<p class="mini">'+esc(L("pWcL"))+": "+wcD+
+    " \u00b7 "+esc(L("pAtL"))+": "+esc(stamp(S.draft.savedAt))+
+    " \u00b7 "+esc(L("pPasteL"))+": "+(((S.draft.integ||{}).paste||0)+((S.draft.integ||{}).drop||0))+
+    " \u00b7 "+esc(L("pDevL"))+": "+esc(S.device||"\u2014")+
+    (isTouch(S.device)? ' <b>'+esc(L("pDevTouch"))+'</b>':"")+'</p>'+
+    '<div class="ptext">'+esc(S.draft.text||L("pNotSub"))+'</div></div>');
+
+  var KS=keystats();
+  out.push('<div class="psec"><h2>'+esc(L("pKeyL"))+'</h2>'+
+    (KS.n? ('<p class="mini">'+esc(L("pKeyEv"))+": "+KS.n+
+        " \u00b7 "+esc(L("pKeyTyped"))+": "+KS.typed+" / "+esc(L("pKeyDel"))+": "+KS.del+
+        " \u00b7 "+esc(L("pKeyActive"))+": "+mmss(KS.active)+
+        " \u00b7 "+esc(L("pKeyCpm"))+": "+KS.cpm+'</p>'+
+      '<p class="mini">'+esc(L("pKeyMed"))+": "+KS.med+" ms"+
+        " \u00b7 "+esc(L("pKeyGap"))+": "+mmss(KS.maxGap)+
+        " \u00b7 "+esc(L("pKeyBulk"))+": <b>"+KS.bulk+"</b>"+
+        " \u00b7 "+esc(L("pKeyMaxIns"))+": "+KS.maxIns+
+        (KS.capped? " \u00b7 "+esc(L("pKeyCap")) : "")+'</p>'+
+      keySVG()+
+      '<p class="mini">'+esc(L("pKeyLeg"))+'</p>')
+     :('<p>'+esc(L("pKeyNone"))+'</p>'))+
+    '</div>');
+
+  /* Stage 1 export: the draft and how it was entered, nothing further. */
+  if(draftOnly){
+    out.push('<p class="mini"><b>'+esc(L("pS1Only"))+'</b></p>');
+    $("print").innerHTML=out.join(""); return;
+  }
+
+  out.push('<div class="psec"><h2>'+esc(L("pS2"))+'</h2>'+
+    '<p class="mini">'+esc(L("pWcL"))+": "+wcR+" \u00b7 "+esc(L("pAtL"))+": "+esc(stamp(S.revised.savedAt))+'</p>'+
+    '<div class="ptext">'+esc(S.revised.text||L("pNotSub"))+'</div></div>');
+
+  var rows="";
+  for(var i=0;i<S.changes.length;i++){ var c=S.changes[i];
+    rows+='<tr><td>'+(i+1)+'</td><td class="old">'+(c.a?esc(c.a):'<i>'+esc(L("pIns"))+'</i>')+
+      '</td><td class="new">'+(c.b?esc(c.b):'<i>'+esc(L("pDel"))+'</i>')+
+      '</td><td>'+esc(c.type?L(c.type):"—")+'</td><td>'+esc(c.why||"—")+'</td></tr>';
+  }
+  out.push('<div class="psec"><h2>'+esc(L("pS3"))+'</h2>'+
+    (rows?('<table><thead><tr><th style="width:6%">'+esc(L("pNo"))+'</th><th style="width:24%">'+esc(L("pFrom"))+
+      '</th><th style="width:24%">'+esc(L("pTo"))+'</th><th style="width:16%">'+esc(L("pType"))+
+      '</th><th>'+esc(L("pWhy"))+'</th></tr></thead><tbody>'+rows+'</tbody></table>')
+     :('<p>'+esc(L("pNoChg"))+'</p>'))+
+    '<h2 style="font-size:11pt;border:0;margin:4mm 0 2mm">'+esc(L("pS3b"))+'</h2>'+
+    '<div class="ptext diff">'+(S.diffHTML||"")+'</div>'+
+    '<p class="mini">'+esc(L("s3Legend"))+'</p></div>');
+
+  out.push('<div class="psec"><h2>'+esc(L("pS4"))+'</h2>'+
+    '<p class="mini">'+esc(L("pWcL"))+": "+wcF+" \u00b7 "+esc(L("pAtL"))+": "+esc(stamp(S.final.at))+'</p>'+
+    '<div class="ptext">'+esc(S.final.text||L("pNotSub"))+'</div></div>');
+
+  var used = S.ai.used==="yes"?L("pYes"):S.ai.used==="no"?L("pNoo"):L("pNotDecl");
+  var ai='<table><tbody><tr><th style="width:26%">'+esc(L("pAiUsed"))+'</th><td>'+esc(used)+'</td></tr>';
+  if(S.ai.used==="yes"){
+    ai+='<tr><th>'+esc(L("aiTools"))+'</th><td>'+esc(S.ai.tools||"—")+'</td></tr>'+
+        '<tr><th>'+esc(L("aiExtent"))+'</th><td>'+esc(extentLabel())+'</td></tr>';
+  }
+  ai+='</tbody></table>';
+  out.push('<div class="psec"><h2>'+esc(L("pAI"))+'</h2>'+ai+'</div>');
+
+  out.push('<div class="psec"><h2>'+esc(L("pSign"))+'</h2>'+
+    '<p>'+esc(L("pSignTxt"))+'</p>'+
+    (S.final.honest?'':'<p><b>'+esc(L("pUnsigned"))+'</b></p>')+
+    '<p style="margin-top:10mm">'+esc(L("pSignLine"))+': ______________________________ \u00a0\u00a0\u00a0 '+
+    esc(L("pDate"))+': ____________________</p></div>');
+
+  $("print").innerHTML=out.join("");
+}
+
+/* ------------------------------------------------------------------ events */
+function go(n){ S.stage=n; save(); render(); window.scrollTo(0,0); }
+
+function bind(){
+  $("langBtn").onclick=function(){ S.lang=(S.lang==="zh"?"en":"zh"); save(); render(); };
+  $("stageBar").addEventListener("click",function(e){
+    var b=e.target.closest?e.target.closest("button[data-go]"):null; if(!b||b.disabled) return; go(+b.getAttribute("data-go"));
+  });
+
+  /* stage 1 */
+  var ta=$("draft"); guard(ta);
+  var prevLen=(S.draft.text||"").length;
+  ta.addEventListener("input",function(){
+    var v=ta.value, now=Date.now(), dlen=v.length-prevLen;
+    S.draft.text=v; prevLen=v.length;
+    if(!S.draft.keys) S.draft.keys=[];
+    if(S.draft.keys.length<KEY_CAP){
+      var gap=S.draft.lastAt?Math.min(now-S.draft.lastAt,KEY_GAP):0;
+      S.draft.keys.push([gap,dlen]);
+    }
+    S.draft.lastAt=now;
+    if(dlen>60){ if(!S.draft.integ) S.draft.integ={paste:0,drop:0,bulk:0};
+      S.draft.integ.bulk=(S.draft.integ.bulk||0)+1; msg("s1msg",T("bulkNote"),"warn"); }
+    paintMeter(); save();
+  });
+  ["stName","stId","stCourse","stWeek"].forEach(function(id){
+    $(id).addEventListener("input",function(){
+      S.student[{stName:"name",stId:"id",stCourse:"course",stWeek:"week"}[id]]=$(id).value;
+      save();
+    });
+  });
+  $("s1Submit").onclick=function(){
+    /* Read the textarea, not just state: if the input handler ever fails, what the
+       student can see on screen is still what gets counted and submitted. */
+    S.draft.text=$("draft").value;
+    var n=wc(S.draft.text), w=parseInt(S.student.week,10);
+    if(!S.student.name.trim()||!S.student.id.trim()){ msg("s1msg",T("errName"),"bad"); return; }
+    if(isNaN(w)||w<1||w>30){ msg("s1msg",T("errWeek"),"bad"); return; }
+    if(n<DRAFT_MIN||n>DRAFT_MAX){ msg("s1msg",TF("errWc",{min:DRAFT_MIN,max:DRAFT_MAX,n:n}),"bad"); return; }
+    S.draft.savedAt=new Date().toISOString(); S.device=devInfo();
+    /* The draft locks on submit, and 解鎖重寫 clears Stages 2-4, so in normal use
+       there is no stale comparison here. This guard still catches an imported
+       record whose draft does not match the text its change list was built from. */
+    var stale=(S.changes.length>0 && S.diffFrom!==S.draft.text);
+    if(stale){ S.changes=[]; S.diffHTML=""; S.diffFrom=""; S.maxStage=2; }
+    S.maxStage=Math.max(S.maxStage,2); save();
+    if(stale){ msg("s1msg",T("draftChanged"),"warn"); render(); return; }
+    msg("s1msg",""); go(2);
+  };
+  $("s1Unlock").onclick=function(){
+    if(!confirm(T("confUnlock"))) return;
+    S.draft.savedAt=null;
+    S.revised={text:"",savedAt:null}; S.changes=[]; S.diffHTML=""; S.diffFrom="";
+    S.final={text:"",at:null,code:"",honest:false}; S.maxStage=1; S.stage=1; save(); render();
+  };
+
+  /* stage 2 */
+  $("s2Copy").onclick=function(){
+    var t=S.draft.text, done=function(ok){ $("s2CopyMsg").textContent=ok?T("copied"):T("copyFail"); };
+    if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(t).then(function(){done(true);},function(){fallback();}); }
+    else fallback();
+    function fallback(){
+      try{ var x=document.createElement("textarea"); x.value=t; x.style.position="fixed"; x.style.opacity="0";
+        document.body.appendChild(x); x.select(); var ok=document.execCommand("copy"); document.body.removeChild(x); done(ok); }
+      catch(e){ done(false); }
+    }
+  };
+  $("revised").addEventListener("input",function(){
+    S.revised.text=$("revised").value;
+    $("r_wc").textContent=wc(S.revised.text); $("r_range").innerHTML=rangeTxt(wc(S.revised.text)); save();
+  });
+  $("s2Submit").onclick=function(){
+    var t=(S.revised.text||"").trim();
+    if(!t){ msg("s2msg",T("errEmptyRev"),"bad"); return; }
+    var nr=wc(t);
+    if(nr<WORD_MIN||nr>WORD_MAX){ msg("s2msg",TF("errRevWc",{min:WORD_MIN,max:WORD_MAX,n:nr}),"bad"); return; }
+    if(t===(S.draft.text||"").trim()){ msg("s2msg",T("errSameRev"),"warn"); }
+    else msg("s2msg","");
+    S.revised.savedAt=new Date().toISOString();
+    computeChanges(); S.maxStage=Math.max(S.maxStage,3); save(); go(3);
+  };
+
+  /* stage 3 */
+  $("chgList").addEventListener("input",function(e){
+    var el=e.target, i=el.getAttribute&&el.getAttribute("data-ci"); if(i===null||i===undefined) return;
+    S.changes[+i][el.getAttribute("data-f")]=el.value; save();
+    var done=0; for(var k=0;k<S.changes.length;k++) if(S.changes[k].type&&String(S.changes[k].why).trim()) done++;
+    $("s3Count").textContent="("+done+"/"+S.changes.length+")";
+  });
+  $("chgList").addEventListener("change",function(e){
+    var el=e.target, i=el.getAttribute&&el.getAttribute("data-ci"); if(i===null||i===undefined) return;
+    S.changes[+i][el.getAttribute("data-f")]=el.value; save();
+  });
+  $("s3Redo").onclick=function(){
+    function sig(){ var a=[]; for(var i=0;i<S.changes.length;i++) a.push(S.changes[i].a+"\u0000"+S.changes[i].b); return a.join("\u0001"); }
+    var before=sig();
+    computeChanges(); save(); render();
+    var n=S.changes.length;
+    if(!String(S.revised.text||"").trim()) msg("s3msg",T("redoEmpty"),"bad");
+    else if(!n) msg("s3msg",T("redoNone"),"warn");
+    else if(sig()===before) msg("s3msg",TF("redoSame",{n:n}),"warn");
+    else msg("s3msg",TF("redoDone",{n:n}),"ok");
+  };
+  $("s3Submit").onclick=function(){
+    var bad=0; for(var i=0;i<S.changes.length;i++){ if(!S.changes[i].type||!String(S.changes[i].why).trim()) bad++; }
+    if(bad){ msg("s3msg",TF("errChg",{n:bad}),"bad"); return; }
+    msg("s3msg",""); S.maxStage=Math.max(S.maxStage,4);
+    S.final.text=S.revised.text;
+    save(); go(4);
+  };
+
+  /* stage 4 */
+  var rs=document.getElementsByName("aiUsed");
+  for(var r=0;r<rs.length;r++) rs[r].addEventListener("change",function(){
+    S.ai.used=this.value; $("aiFields").classList[S.ai.used==="no"?"add":"remove"]("hidden"); save();
+  });
+  $("aiTools").addEventListener("input",function(){ S.ai.tools=$("aiTools").value; save(); });
+  $("aiExtent").addEventListener("change",function(){ S.ai.extent=$("aiExtent").value; save(); });
+  $("honest").addEventListener("change",function(){ S.final.honest=$("honest").checked; save(); });
+  $("s4Submit").onclick=function(){
+    var n=wc(S.final.text);
+    if(n<WORD_MIN||n>WORD_MAX){ msg("s4msg",TF("errFinal",{min:WORD_MIN,max:WORD_MAX}),"bad"); return; }
+    if(!S.final.honest){ msg("s4msg",T("errHonest"),"bad"); return; }
+    S.final.at=new Date().toISOString(); S.final.code=code();
+    msg("s4msg",T("pdfHint")); save(); render();
+  };
+  $("pdfBtn").onclick=$("pdfBtn2").onclick=function(){ buildPrint(); setTimeout(function(){ window.print(); },60); };
+  $("s1Pdf").onclick=function(){ buildPrint("s1"); setTimeout(function(){ window.print(); },60); };
+  $("newWeekBtn").onclick=function(){
+    if(!confirm(T("confNewWeek"))) return;
+    var keep={name:S.student.name,id:S.student.id,course:S.student.course,week:""}, lang=S.lang;
+    S=blank(); S.student=keep; S.lang=lang; save(); render(); window.scrollTo(0,0);
+  };
+
+  /* backup */
+  $("expBtn").onclick=function(){
+    var name=(serial()||((S.student.id||"student")+"_"+(S.student.name||"")))+"_reflection.json";
+    var blob=new Blob([JSON.stringify(S,null,2)],{type:"application/json"});
+    var a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name.replace(/\s+/g,"");
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(a.href); },1000);
+  };
+  $("impBtn").onclick=function(){ $("impFile").click(); };
+  $("impFile").addEventListener("change",function(e){
+    var f=e.target.files&&e.target.files[0]; if(!f) return;
+    var fr=new FileReader();
+    fr.onload=function(){ try{ var o=JSON.parse(fr.result); if(!o||!o.draft) throw 0;
+        var b=blank(); for(var k in b){ if(o[k]!==undefined){ if(b[k]&&typeof b[k]==="object"&&!Array.isArray(b[k])){ for(var j in b[k]) if(o[k][j]!==undefined) b[k][j]=o[k][j]; } else b[k]=o[k]; } }
+        S=b; save(); render(); }catch(err){ alert("Invalid file"); } };
+    fr.readAsText(f); e.target.value="";
+  });
+  $("resetBtn").onclick=function(){ if(!confirm(T("confReset"))) return; try{ localStorage.removeItem(LS); }catch(e){} S=blank(); render(); };
+
+  window.addEventListener("beforeprint",buildPrint);
+}
+
+/* ------------------------------------------------------------------ boot */
+window.onerror=function(m,f,l){
+  var w=document.getElementById("jsWarn"); if(!w) return false;
+  w.style.display=""; w.innerHTML='<b>\u26a0 \u7a0b\u5f0f\u932f\u8aa4 / Script error</b>'+
+    '\u8acb\u5c07\u4e0b\u5217\u8a0a\u606f\u544a\u77e5\u6388\u8ab2\u6559\u5e2b\uff1a'+
+    '<div class="en">'+String(m)+' @ line '+String(l)+'</div>';
+  return false;
+};
+probeStore(); load(); bind(); checkIntegrity(); render();
+$("jsWarn").style.display="none";   /* boot completed: scripts are running */
+</script>
+</body>
+</html>
